@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from scr.functions import foot_pos
 import pandas as pd
 import os
-from funtions import foot_pos
 
 def read_lgrdata(path, meta):
     filename = 'gga_' + meta[2] + '_' + meta[3] + '.txt'
