@@ -54,8 +54,9 @@ def processing_BC(data, meta):
         Cw_f2 = Cw(dPdt_f2, Px, dPdt_opt[1], var, dtmin, hw, ha, T)
         Fs_dPdt_f = dPdt_opt[0]*1000*86400
         k_dPdt_f = dPdt_opt[1]*86400
-        results[var] = {'Fs_lin': Fs, 'Pol': pol, 'Fs_dPdt': Fs_dPdt_f,
-                        'k': k_dPdt_f, 'Cw0': Cw0}
+        results[var] = {'BC_Name': meta[13], 'Fs_lin': Fs, 'Pol': pol,
+                        'Fs_dPdt': Fs_dPdt_f, 'k': k_dPdt_f, 'Cw0': Cw0,
+                        'Cwf_dPdt': Cw_f[-1]*1000, 'Cwf_lin': Cw_f2[-1]*1000}
         data_r[var] = {'Px': Px, 'dPdt_fopt': dPdt_f, 'dPdt_flin': dPdt_f2,
                        'Cw_fopt': Cw_f, 'Cw_flin': Cw_f2, 'dPdt': dPdt,
                        'Time': data.index, 'dt': dt, 'Time_linf': time}
