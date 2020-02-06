@@ -6,6 +6,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scr.functions import dcon_dt, sed_flux, FdPdt, Cw
 import pandas as pd
+import logging
 pd.set_option('mode.chained_assignment', None)
 
 def processing_BC(data, meta):
@@ -20,6 +21,7 @@ def processing_BC(data, meta):
     data_r = dict()
 
     for var in data:
+        logging.info('Processing variable %s', var[:3])
         # Changing ppm to partial pressure
         data.loc[:,var] = data[var]*P*1E-4 #[Pa]
 
@@ -33,30 +35,44 @@ def processing_BC(data, meta):
         t = np.arange(0,len(Px))
         if var == 'CH4d_ppm':
             Cw0 = meta[4] # (umol/l) initial CH4 concentration measured with headspace
-            bounds = ([0, 0], [1, 1])
+            bounds = ([0, 10/86400.], [1, 30/86400.])
         else:
             Cw0 = meta[6] # (umol/l) initial CO2 concentration measured with headspace
-            bounds = ([-1, 0], [1, 1])
+            bounds = ([-1, 10/86400.], [1, 30/86400.])
         # Fitting equation based on dPdt
-        dPdt_opt, dPdt_cov = curve_fit(lambda t, Fs, k: \
-                                       FdPdt(dt, var, Fs, Cw0/1000., k,
-                                            Px[0], T, hw, ha), dt, dPdt,
-                                       bounds=bounds)
+        try:
+            dPdt_opt, dPdt_cov = curve_fit(lambda t, Fs, k: \
+                                        FdPdt(dt, var, Fs, Cw0/1000., k,
+                                                Px[0], T, hw, ha), dt, dPdt,
+                                        bounds=bounds)
 
-        # Evaluation of fittig curve based on dPdt with optimum
-        dPdt_f = FdPdt(dt, var, dPdt_opt[0], Cw0/1000., dPdt_opt[1], Px[0],
-                       T, hw, ha)
-        # Evaluation of fittig curve based on dPdt with linear flux
-        dPdt_f2 = FdPdt(dt, var, Fs/86400/1000., Cw0/1000., dPdt_opt[1], Px[0],
+            # Evaluation of fittig curve based on dPdt with optimum
+            dPdt_f = FdPdt(dt, var, dPdt_opt[0], Cw0/1000., dPdt_opt[1], Px[0],
                         T, hw, ha)
+            Cw_f = Cw(dPdt_f, Px, dPdt_opt[1], var, dtmin, hw, ha, T)
+            Fs_dPdt_f = dPdt_opt[0]*1000*86400
+            k_dPdt_f = dPdt_opt[1]*86400
+            dPdt_f2 = FdPdt(dt, var, Fs/86400/1000., Cw0/1000., dPdt_opt[1], Px[0],
+                            T, hw, ha)
+            Cw_f2 = Cw(dPdt_f2, Px, dPdt_opt[1], var, dtmin, hw, ha, T)
+
+        except RuntimeError as fnf_error:
+            dPdt_f = np.NAN
+            dPdt_f2 = np.NAN
+            Cw_f = [np.NAN]
+            Fs_dPdt_f = np.NAN
+            k_dPdt_f = np.NAN
+            dPdt_f2 = np.NAN
+            Cw_f2 = [np.NAN]
+            logging.warning(fnf_error)
+
+        # Evaluation of fittig curve based on dPdt with linear flux
         # Water concentration with optimus values
-        Cw_f = Cw(dPdt_f, Px, dPdt_opt[1], var, dtmin, hw, ha, T)
-        Cw_f2 = Cw(dPdt_f2, Px, dPdt_opt[1], var, dtmin, hw, ha, T)
-        Fs_dPdt_f = dPdt_opt[0]*1000*86400
-        k_dPdt_f = dPdt_opt[1]*86400
-        results[var] = {'BC_Name': meta[13], 'Fs_lin': Fs, 'Pol': pol,
+        results[var] = {'BC_Name': meta[13], 'Date': meta[2], 'Start': meta[0],
+                        'End': meta[1], 'Fs_lin': Fs, 'Pol': pol,
                         'Fs_dPdt': Fs_dPdt_f, 'k': k_dPdt_f, 'Cw0': Cw0,
-                        'Cwf_dPdt': Cw_f[-1]*1000, 'Cwf_lin': Cw_f2[-1]*1000}
+                        'Cwf_dPdt': Cw_f[-1]*1000, 'Cwf_lin': Cw_f2[-1]*1000,
+                        'P' : P, 'Temp': T, 'Hw': hw, 'Ha': ha}
         data_r[var] = {'Px': Px, 'dPdt_fopt': dPdt_f, 'dPdt_flin': dPdt_f2,
                        'Cw_fopt': Cw_f, 'Cw_flin': Cw_f2, 'dPdt': dPdt,
                        'Time': data.index, 'dt': dt, 'Time_linf': time}

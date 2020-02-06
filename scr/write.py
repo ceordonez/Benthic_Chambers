@@ -3,6 +3,7 @@
 
 import os
 import pdb
+import sys
 
 import pandas as pd
 import numpy as np
@@ -88,19 +89,21 @@ def append_df_to_excel(filename, df, bc_name, sheet_name='Sheet1', startrow=None
 
 def write_excel(path, results, meta, new=False):
 
-    names = [str(meta[12]), str(meta[13]), str(meta[2]), str(meta[3])]
+    names = ['Benthic_Chambers', str(meta[12])]
     filename = '_'.join(names)
     path_out = os.path.join(path, meta[12], 'Results', 'Benthic_Chamber')
     if not os.path.exists(path_out):
         os.makedirs(path_out)
     resfile = os.path.join(path_out, filename + '.xlsx')
-    writer = pd.ExcelWriter(resfile, engine='xlsxwriter')
-    workbook = writer.book
     if not os.path.isfile(resfile) or new:
+        writer = pd.ExcelWriter(resfile, engine='xlsxwriter')
+        workbook = writer.book
         for var in results:
-            units = {'BC_name':'', 'Fs_lin':'(mmol/m2/d)', 'Fs_dPdt': '(mmol/m2/d)',
+            units = {'BC_name':'', 'Date':'', 'Start': '', 'End': '',
+                     'Fs_lin':'(mmol/m2/d)', 'Fs_dPdt': '(mmol/m2/d)',
                      'k': '(m/d)', 'Cw0': '(umol/l)', 'Cwf_dPdt': '(umol/l)',
-                     'Cwf_lin': '(umol/l)'}
+                     'Cwf_lin': '(umol/l)', 'P': '(hPa)', 'Temp': '(oC)',
+                     'hw': '(cm)', 'ha':'(cm)'}
             worksheet = writer.book.add_worksheet(var[:3])
             bold = workbook.add_format({'bold': True, 'align': 'center'})
             i = 0
@@ -112,12 +115,21 @@ def write_excel(path, results, meta, new=False):
             formath = workbook.add_format({'num_format':'0.00'})
             formath.set_align('center')
             formath.set_align('vcenter')
-            worksheet.set_column('A:G', 15, formath)
+            worksheet.set_column('A:A', 10, formath)
+            worksheet.set_column('B:B', 13, formath)
+            worksheet.set_column('C:D', 7, formath)
+            worksheet.set_column('E:F', 13, formath)
+            worksheet.set_column('G:N', 10, formath)
+        writer.save()
     else:
         for var in results:
+            data_res = pd.DataFrame(results[var])
+            data_res = data_res.drop(['Pol'], axis=1)
+            data_res = data_res.drop(1)
+            data_res = data_res.set_index('BC_Name')
             append_df_to_excel(resfile, data_res, meta[13], header=False,
                                sheet_name=var[:3])
-    writer.save()
+        sys.exit()
     for var in results:
         data_res = pd.DataFrame(results[var])
         data_res = data_res.drop(['Pol'], axis=1)
