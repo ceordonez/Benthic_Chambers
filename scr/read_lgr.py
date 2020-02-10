@@ -5,10 +5,9 @@ from scr.functions import foot_pos
 import pandas as pd
 import os
 
-def read_lgrdata(path, meta):
-    filename = 'gga_' + meta[2] + '_' + meta[3] + '.txt'
-    lake = meta[12]
+def read_lgrdata(path, lake, meta):
     date = meta[2]
+    filename = 'gga_' + date + '_' + meta[3] + '.txt'
     lgrfile = os.path.join(path, lake, 'Data', 'LGR', date, filename)
     ifoot = foot_pos(lgrfile)
     rfile = pd.read_csv(lgrfile, sep=',', header=1, skipfooter=ifoot,

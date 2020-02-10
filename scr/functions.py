@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pandas as pd
 import pdb
 
 d = 5.9   #[cm]
@@ -152,3 +153,15 @@ def Cw(dPdt, P, k, varname, dt, hw, ha, T):
 
     Cw = Va/(R*Tk)*dPdt /(k*A) + H*P[::int(dt*60)]
     return Cw
+
+def Fs_massbalance(Cw0, Cwf, Px0, Pxf, hw, ha, t_start, t_end, T):
+    if Cwf < 0:
+        return np.NAN, np.NAN
+    else:
+        Vw = np.pi*(5.9/100/2.)**2*hw/100. # (m3) Volume Water
+        Va = np.pi*(5.9/100/2.)**2*ha/100. # (m3) Volume Air
+        dt = pd.Timedelta(t_end - t_start, unit='s').total_seconds() # Time in sec
+        dCw_dt = (Cwf-Cw0)/1000*Vw/dt
+        dCa_dt = (Pxf-Px0)/dt*Va/(8.314*(T + 273.15))
+        Fs_MB = (dCw_dt + dCa_dt)/(np.pi*(5.9/100/2.)**2)*86400*1000
+        return Fs_MB, Cwf

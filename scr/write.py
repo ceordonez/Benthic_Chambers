@@ -9,8 +9,7 @@ import pandas as pd
 import numpy as np
 
 from openpyxl import load_workbook
-
-
+from datetime import datetime
 
 def append_df_to_excel(filename, df, bc_name, sheet_name='Sheet1', startrow=None,
                        truncate_sheet=False,
@@ -87,23 +86,29 @@ def append_df_to_excel(filename, df, bc_name, sheet_name='Sheet1', startrow=None
     writer.save()
 
 
-def write_excel(path, results, meta, new=False):
+def write_excel(path, results, lake, core, meta, exp, new=False):
 
-    names = ['Benthic_Chambers', str(meta[12])]
+    names = ['Benthic_Chambers', lake]
     filename = '_'.join(names)
-    path_out = os.path.join(path, meta[12], 'Results', 'Benthic_Chamber')
+    path_out = os.path.join(path, lake, 'Results', 'Benthic_Chamber')
     if not os.path.exists(path_out):
         os.makedirs(path_out)
-    resfile = os.path.join(path_out, filename + '.xlsx')
+
+    if exp !='':
+        resfile = os.path.join(path_out, filename + '_' + exp + '.xlsx')
+    else:
+        resfile = os.path.join(path_out, filename + '.xlsx')
+
     if not os.path.isfile(resfile) or new:
         writer = pd.ExcelWriter(resfile, engine='xlsxwriter')
         workbook = writer.book
         for var in results:
-            units = {'BC_name':'', 'Date':'', 'Start': '', 'End': '',
+            units = {'BC_name':'', 'Start': '', 'End': '',
                      'Fs_lin':'(mmol/m2/d)', 'Fs_dPdt': '(mmol/m2/d)',
-                     'k': '(m/d)', 'Cw0': '(umol/l)', 'Cwf_dPdt': '(umol/l)',
-                     'Cwf_lin': '(umol/l)', 'P': '(hPa)', 'Temp': '(oC)',
-                     'hw': '(cm)', 'ha':'(cm)'}
+                     'Fs_MB': '(mmol/m2/d)', 'k': '(m/d)', 'Cw0': '(umol/l)',
+                     'Cwf': '(umol/l)', 'Cwf_dPdt': '(umol/l)', 'Cwf_lin': '(umol/l)',
+                     'P': '(hPa)', 'Temp': '(oC)', 'hw': '(cm)', 'ha':'(cm)',
+                     'Px_start': '(Pa)', 'Px_end': '(Pa)'}
             worksheet = writer.book.add_worksheet(var[:3])
             bold = workbook.add_format({'bold': True, 'align': 'center'})
             i = 0
@@ -113,28 +118,28 @@ def write_excel(path, results, meta, new=False):
                 i+=1
             # format excel
             formath = workbook.add_format({'num_format':'0.00'})
+            dformat = workbook.add_format({'num_format':'dd/mm/YYYY hh:mm'})
             formath.set_align('center')
             formath.set_align('vcenter')
+            dformat.set_align('center')
+            dformat.set_align('vcenter')
             worksheet.set_column('A:A', 10, formath)
-            worksheet.set_column('B:B', 13, formath)
-            worksheet.set_column('C:D', 7, formath)
-            worksheet.set_column('E:F', 13, formath)
-            worksheet.set_column('G:N', 10, formath)
+            worksheet.set_column('B:C', 20, dformat)
+            worksheet.set_column('D:F', 13, formath)
+            worksheet.set_column('G:R', 10, formath)
         writer.save()
+        for var in results:
+            data_res = pd.DataFrame(results[var])
+            data_res = data_res.drop(['Pol'], axis=1)
+            data_res = data_res.drop(1)
+            data_res = data_res.set_index('BC_Name')
+            append_df_to_excel(resfile, data_res, core, startrow=2,
+                                header=False, sheet_name=var[:3])
     else:
         for var in results:
             data_res = pd.DataFrame(results[var])
             data_res = data_res.drop(['Pol'], axis=1)
             data_res = data_res.drop(1)
             data_res = data_res.set_index('BC_Name')
-            append_df_to_excel(resfile, data_res, meta[13], header=False,
+            append_df_to_excel(resfile, data_res, core, header=False,
                                sheet_name=var[:3])
-        sys.exit()
-    for var in results:
-        data_res = pd.DataFrame(results[var])
-        data_res = data_res.drop(['Pol'], axis=1)
-        data_res = data_res.drop(1)
-        data_res = data_res.set_index('BC_Name')
-        append_df_to_excel(resfile, data_res, meta[13], startrow=2,
-                            header=False, sheet_name=var[:3])
-
