@@ -26,7 +26,6 @@ def processing_BC(data, core, meta, kbounds):
     T = meta[11] # (C) Temperature
     hw = meta[8] # (cm) Water height inside core
     ha = meta[9] # (cm) Air height inside core
-    #print(data.iloc[0], data.iloc[-1])
     results = dict()
     data_r = dict()
 

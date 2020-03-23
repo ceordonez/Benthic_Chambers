@@ -9,7 +9,7 @@ import pdb
 
 plt.style.use('presentation')
 
-def plot_results(results, data_r, meta, path, save=True):
+def plot_results(results, data_r, lake, core, meta, path, exp, save=True):
 
     for var in data_r:
         t = np.arange(len(data_r[var]['Time']))/60.
@@ -19,7 +19,7 @@ def plot_results(results, data_r, meta, path, save=True):
         time_lin = data_r[var]['Time_linf']
 
         fig, ax = plt.subplots(3, 1, figsize=(8,7),sharex=True)
-        title = ' '.join([meta[12], meta[13]])
+        title = ' '.join([lake, core])
         fig.suptitle(title)
         title1 = 'k = %.2f (m/d), cw(0) = %.2f (umol/l), Fs_linfit = %.2f (mmol/m2/d), Fs_ffit = %.2f (mmol/m2/d)' \
             % (results[var]['k'], results[var]['Cw0'],
@@ -36,9 +36,15 @@ def plot_results(results, data_r, meta, path, save=True):
             ax[2].plot(dt, data_r[var]['Cw_fopt']*1000, 'b', label=label1)
             ax[2].plot(dt, data_r[var]['Cw_flin']*1000, 'r', label=label2)
         if 'CH4' in var:
-            ax[2].plot([dt[0],dt[-1]], [meta[4], meta[5]], 'ko', label='Data')
+            if meta[5] == -99:
+                ax[2].plot([dt[0],dt[-1]], [meta[4], np.nan], 'ko', label='Data')
+            else:
+                ax[2].plot([dt[0],dt[-1]], [meta[4], meta[5]], 'ko', label='Data')
         else:
-            ax[2].plot([dt[0],dt[-1]], [meta[6], meta[7]], 'ko', label='Data')
+            if meta[7] == -99:
+                ax[2].plot([dt[0],dt[-1]], [meta[6], np.nan], 'ko', label='Data')
+            else:
+                ax[2].plot([dt[0],dt[-1]], [meta[6], meta[7]], 'ko', label='Data')
         ax[1].legend()
         ax[2].legend()
         ax[2].set_xlabel('Time [min]')
@@ -55,13 +61,16 @@ def plot_results(results, data_r, meta, path, save=True):
         ax[2].yaxis.set_major_locator(plt.MaxNLocator(5))
 
         if save:
-            names = [str(meta[12]), str(meta[13]), str(meta[2]), str(meta[3]),
-                     var[:3]]
+            if exp != '':
+                names = [lake, core, str(meta[2]), str(meta[3]), var[:3], exp]
+            else:
+                names = [lake, core, str(meta[2]), str(meta[3]), var[:3]]
             figname = '_'.join(names)
-            path_out = os.path.join(path, meta[12], 'Results', 'Benthic_Chamber')
+            path_out = os.path.join(path, lake, 'Results', 'Benthic_Chamber')
             if not os.path.exists(path_out):
                 os.makedirs(path_out)
             plt.savefig(path_out + '/'+ figname + '.png',fmt='.png',dpi=300)
+            plt.close()
     if not save:
         plt.show()
 
