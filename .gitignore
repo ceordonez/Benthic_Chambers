@@ -1,0 +1,4 @@
+*.log
+OLD_Figures/*
+model/*
+others/*
